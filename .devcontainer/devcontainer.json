@@ -1,0 +1,44 @@
+{
+    "name": "SHIFT Python 2024",
+    "dockerComposeFile": "docker-compose.yml",
+    "service": "app",
+    "workspaceFolder": "/workspace",
+    "features": {
+        "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {},
+        "ghcr.io/devcontainers/features/common-utils:2": {
+            "configureZshAsDefaultShell": true,
+            "installOhMyZshConfig": false
+        },
+        "ghcr.io/devcontainers/features/kubectl-helm-minikube:1": {
+            "minikube": "none"
+        },
+        "ghcr.io/devcontainers/features/python:1": {
+            "version": "3.12",
+            "installTools": true,
+            "toolsToInstall": ["poetry"]
+        }
+    },
+    "remoteEnv": {
+        "SYNC_LOCALHOST_KUBECONFIG": "true"
+    },
+    "postStartCommand": "/workspace/.devcontainer/app/post-start.sh",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "EditorConfig.EditorConfig",
+                "eamodio.gitlens",
+                "ms-azuretools.vscode-docker",
+                "ms-python.python",
+                "redhat.vscode-yaml",
+                "tamasfe.even-better-toml",
+                "njqdev.vscode-python-typehint",
+                "vscode-icons-team.vscode-icons"
+            ]
+        }
+    },
+    "mounts": [
+        "source=shift-python-2024,target=/commandhistory,type=volume",
+        "source=${env:HOME}${env:USERPROFILE}/.kube,target=/usr/local/share/kube-localhost,type=bind"
+    ],
+    "remoteUser": "root"
+}
