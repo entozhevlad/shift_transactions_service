@@ -7,10 +7,12 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.12"
+pytest = "^8.2.2"
 
 [tool.poetry.group.dev.dependencies]
 wemake-python-styleguide = "^0.19.2"
 pytest = "^8.2.2"
+pytest-cov = "^5.0.0"
 
 [build-system]
 requires = ["poetry-core"]
