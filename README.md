@@ -11,7 +11,7 @@
 2. Зарустите линтер для папки app:
 
     ```bash
-    poetry run flake8 src/app
+    poetry run flake8 --jobs=1 src/app
     ```
 
 Можно редактировать конфигурационный файл линтера `.flake8` в корне проекта.

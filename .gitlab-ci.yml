@@ -1,12 +1,11 @@
 stages:
   - lint
   - test
-  
+
 variables:
   PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
 
 before_script:
-  # Устанавливаем poetry
   - apt-get update
   - pip install poetry
 
