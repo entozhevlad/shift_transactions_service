@@ -15,9 +15,9 @@ def user_id(transaction_service):
 def transactions(transaction_service, user_id):
     now = datetime.now()
     transactions = [
-        Transaction(user_id=user_id, amount=100, type=TransactionType.CREDIT, time=now - timedelta(days=1)),
-        Transaction(user_id=user_id, amount=50, type=TransactionType.DEBIT, time=now - timedelta(days=2)),
-        Transaction(user_id=user_id, amount=200, type=TransactionType.CREDIT, time=now - timedelta(days=3))
+        Transaction(user_id=user_id, amount=100, type=TransactionType.credit, time=now - timedelta(days=1)),
+        Transaction(user_id=user_id, amount=50, type=TransactionType.debit, time=now - timedelta(days=2)),
+        Transaction(user_id=user_id, amount=200, type=TransactionType.credit, time=now - timedelta(days=3))
     ]
     transaction_service.transactions.extend(transactions)
     return transactions
@@ -29,21 +29,21 @@ def test_add_user(transaction_service):
     assert transaction_service.users[user_id].last_name == "Doe"
 
 def test_create_transaction(transaction_service, user_id):
-    transaction_service.create_transaction(user_id, 150, TransactionType.CREDIT)
+    transaction_service.create_transaction(user_id, 150, TransactionType.credit)
     assert len(transaction_service.transactions) == 1
     assert transaction_service.transactions[0].amount == 150
-    assert transaction_service.transactions[0].type == TransactionType.CREDIT
+    assert transaction_service.transactions[0].type == TransactionType.credit
 
 def test_create_transaction_user_not_found(transaction_service):
     non_existent_user_id = uuid.uuid4()
     with pytest.raises(ValueError):
-        transaction_service.create_transaction(non_existent_user_id, 150, TransactionType.CREDIT)
+        transaction_service.create_transaction(non_existent_user_id, 150, TransactionType.credit)
 
 def test_get_transactions(transaction_service, user_id, transactions):
     now = datetime.now()
     start = now - timedelta(days=4)
     end = now
-    result = transaction_service.get_transactions(user_id, start, end)
+    result = transaction_service.get_transactions_by_id(user_id, start, end)
     assert len(result) == 3
     assert result[0].amount == 100
     assert result[1].amount == 50
@@ -54,7 +54,7 @@ def test_get_transactions_user_not_found(transaction_service):
     start = datetime.now() - timedelta(days=4)
     end = datetime.now()
     with pytest.raises(ValueError):
-        transaction_service.get_transactions(non_existent_user_id, start, end)
+        transaction_service.get_transactions_by_id(non_existent_user_id, start, end)
 
 def test_save_report(transaction_service, user_id, transactions):
     transaction_service.save_report(user_id, transactions)
