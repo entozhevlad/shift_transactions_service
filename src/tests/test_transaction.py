@@ -1,7 +1,7 @@
 import pytest
 import uuid
 from datetime import datetime, timedelta
-from src.app.transaction import User, TransactionType, Transaction, Report, TransactionService
+from src.app.services.transaction import User, TransactionType, Transaction, Report, TransactionService
 
 @pytest.fixture
 def transaction_service():

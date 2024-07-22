@@ -1,7 +1,7 @@
 import logging
 from datetime import datetime
 
-from app.transaction import TransactionService, TransactionType
+from src.app.services.transaction import TransactionService, TransactionType
 
 # Настройка логирования
 logging.basicConfig(level=logging.DEBUG)
