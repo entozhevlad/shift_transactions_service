@@ -1,5 +1,5 @@
-import logging
 import uuid
+import logging
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
@@ -7,45 +7,35 @@ from typing import Dict, List
 
 logging.basicConfig(level=logging.DEBUG)
 
-
 @dataclass
 class User:
     """Класс, представляющий пользователя."""
-
     user_id: uuid.UUID
     first_name: str
     last_name: str
 
-
 class TransactionType(Enum):
     """Перечисление типов транзакций."""
-
-    debit = 'списать'
-    credit = 'пополнить'
-
+    debit = 'debit'
+    credit = 'credit'
 
 @dataclass
 class Transaction:
     """Класс, представляющий транзакцию."""
-
     user_id: uuid.UUID
     amount: int
     type: TransactionType
     time: datetime = field(default_factory=datetime.now)
 
-
 @dataclass
 class Report:
     """Класс, представляющий отчет по транзакциям."""
-
     user_id: uuid.UUID
     transactions: List[Transaction]
     generated_at: datetime = field(default_factory=datetime.now)
 
-
 class TransactionService:
     """Сервис для управления транзакциями."""
-
     def __init__(self):
         """Инициализирует сервис транзакций."""
         self.users: Dict[uuid.UUID, User] = {}
@@ -73,8 +63,8 @@ class TransactionService:
     ) -> str:
         """Создает новую транзакцию."""
         if user_id not in self.users:
-            logging.error('ID не найден: {user_id}'.format(user_id=user_id))
-            raise ValueError('Пользователь с таким ID не существует')
+            logging.error(f'User ID not found: {user_id}')
+            raise ValueError('User ID does not exist')
         transaction = Transaction(
             user_id=user_id,
             amount=amount,
@@ -83,12 +73,12 @@ class TransactionService:
         self.transactions.append(transaction)
         return 'Транзакция создана: {0}\n'.format(transaction)
 
-    def get_transactions_by_id(
+    def get_user_transactions(
         self, user_id: uuid.UUID, start: datetime, end: datetime,
     ) -> List[Transaction]:
         """Получает список транзакций пользователя за указанный период."""
         if user_id not in self.users:
-            raise ValueError('Пользователь с таким ID не существует')
+            raise ValueError('User ID does not exist')
         return [
             transact
             for transact in self.transactions

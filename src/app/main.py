@@ -1,7 +1,8 @@
 import logging
 from datetime import datetime
-
-from src.app.services.transaction import TransactionService, TransactionType
+from fastapi import FastAPI
+from src.app.routers import transaction
+from src.app.services.transaction_service import TransactionService, TransactionType
 
 # Настройка логирования
 logging.basicConfig(level=logging.DEBUG)
@@ -11,12 +12,18 @@ date = [(2023, 1, 1), (2024, 12, 31)]
 st = datetime(*date[0])
 end = datetime(*date[1])
 
+app = FastAPI()
+
+@app.get("/")
+def read_main():
+    return {"message": "Welcome to the Transaction Service API"}
+
+app.include_router(transaction.router, prefix="/transaction", tags=["transaction"])
 
 def main():
     """Основная функция для запуска примера транзакций."""
     service = TransactionService()
     user_id = service.add_user('Алиса', 'Сокольникова')
-    # Создание транзакций для пользователя Алиса
     logging.info(
         'Создание транзакции для пользователя {0}'.format(
             user_id,
@@ -44,7 +51,6 @@ def main():
     for transaction in transactions_alice:
         logging.info(transaction)
 
-    # Сохранение и вывод отчета для пользователя Алиса
     logging.info('Сохранение отчёта пользователя {0}'.format(user_id))
     service.save_report(user_id, transactions_alice)
     user_id = service.add_user('Боб', 'Власов')
@@ -56,7 +62,6 @@ def main():
             TransactionType.credit,
         ),
     )
-
 
 if __name__ == '__main__':
     main()
