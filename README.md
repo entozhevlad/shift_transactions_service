@@ -20,7 +20,7 @@
 
 Запустите главный файл проекта:
 ```sh
-poetry run python src/app/main.py
+src.app.main:app --host 0.0.0.0 --port 83  --reload
 
 
 
