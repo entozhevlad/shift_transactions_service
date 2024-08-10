@@ -23,7 +23,7 @@ class TransactionType(Enum):
 class Transaction:
     """Класс, представляющий транзакцию."""
     user_id: uuid.UUID
-    amount: int
+    amount: float
     type: TransactionType
     time: datetime = field(default_factory=datetime.now)
 
@@ -38,11 +38,11 @@ class TransactionService:
     """Сервис для управления транзакциями."""
     def __init__(self):
         """Инициализирует сервис транзакций."""
-        self.users: Dict[uuid.UUID, User] = {}
+        self.users: Dict[str, User] = {}  # Словарь с ключами — username
         self.transactions: List[Transaction] = []
         self.reports: List[Report] = []
 
-    def add_user(self, first_name: str, last_name: str) -> uuid.UUID:
+    def add_user(self, username: str, first_name: str, last_name: str) -> uuid.UUID:
         """Добавляет нового пользователя."""
         user_id = uuid.uuid4()
         user = User(
@@ -50,7 +50,7 @@ class TransactionService:
             first_name=first_name,
             last_name=last_name,
         )
-        self.users[user_id] = user
+        self.users[username] = user
         logging.info(
             'Добавлен пользователь: {0}, {1} {2}'.format(
                 user_id, first_name, last_name,
@@ -59,44 +59,44 @@ class TransactionService:
         return user.user_id
 
     def create_transaction(
-        self, user_id: uuid.UUID, amount: float, trans_type: TransactionType,
+        self, username: str, amount: float, trans_type: TransactionType,
     ) -> str:
         """Создает новую транзакцию."""
-        if user_id not in self.users:
-            logging.error(f'User ID not found: {user_id}')
-            raise ValueError('User ID does not exist')
+        if username not in self.users:
+            logging.error(f'User not found: {username}')
+            raise ValueError('User does not exist')
         transaction = Transaction(
-            user_id=user_id,
+            user_id=self.users[username].user_id,
             amount=amount,
             type=trans_type,
         )
         self.transactions.append(transaction)
-        return 'Транзакция создана: {0}\n'.format(transaction)
+        return f'Transaction created for user {username}: {transaction}'
 
     def get_user_transactions(
-        self, user_id: uuid.UUID, start: datetime, end: datetime,
+        self, username: str, start: datetime, end: datetime,
     ) -> List[Transaction]:
         """Получает список транзакций пользователя за указанный период."""
-        if user_id not in self.users:
-            raise ValueError('User ID does not exist')
+        if username not in self.users:
+            raise ValueError('User does not exist')
         return [
             transact
             for transact in self.transactions
-            if transact.user_id == user_id and start <= transact.time <= end
+            if transact.user_id == self.users[username].user_id and start <= transact.time <= end
         ]
 
     def save_report(
-        self, user_id: uuid.UUID, transactions: List[Transaction],
+        self, username: str, transactions: List[Transaction],
     ) -> None:
         """Создает и сохраняет отчет по транзакциям пользователя."""
         report = Report(
-            user_id=user_id,
+            user_id=self.users[username].user_id,
             transactions=transactions,
         )
         self.reports.append(report)
         logging.info(
             'Отчёт для пользователя {user_id} {generated_at}'.format(
-                user_id=user_id, generated_at=report.generated_at,
+                user_id=report.user_id, generated_at=report.generated_at,
             ),
         )
         for transaction in report.transactions:
