@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from src.app.routers import transaction_router
+from src.app.routers.transaction import transaction_router
 
 app = FastAPI()
 
