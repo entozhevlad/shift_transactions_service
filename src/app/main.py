@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from src.app.routers.transaction import transaction_router
+from src.app.routers.transaction import router
 
 app = FastAPI()
 
@@ -7,4 +7,4 @@ app = FastAPI()
 def read_main():
     return {"message": "Welcome to the Transaction Service API"}
 
-app.include_router(transaction_router.router, prefix="/transaction", tags=["transaction"])
+app.include_router(router, prefix="/transaction", tags=["transaction"])
