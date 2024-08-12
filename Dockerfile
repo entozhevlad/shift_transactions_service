@@ -13,6 +13,8 @@ RUN apt-get update && \
 
 RUN poetry config virtualenvs.create false && poetry install --no-interaction --no-root
 
+COPY .env .env 
+
 COPY src /app/src
 
 ENV PYTHONPATH=/app

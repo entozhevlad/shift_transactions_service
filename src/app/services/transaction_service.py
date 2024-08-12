@@ -11,16 +11,6 @@ from typing import Optional
 
 logging.basicConfig(level=logging.DEBUG)
 
-# @dataclass
-# class User:
-#     """Класс, представляющий пользователя."""
-#     username: str
-#     password: str
-#     user_id: uuid.UUID
-#     first_name: str
-#     last_name: str
-#     token: Optional[str] = None
-
 class TransactionType(Enum):
     """Перечисление типов транзакций."""
     debit = 'debit'
@@ -42,7 +32,7 @@ class Report:
     generated_at: datetime = field(default_factory=datetime.now)
 
 ALGORITHM = "HS256"
-SECRET_KEY="eyJhbGciOiJIUzI1NiJ9.eyJSb2xlIjoiQWRtaW4iLCJJc3N1ZXIiOiJJc3N1ZXIiLCJVc2VybmFtZSI6IkphdmFJblVzZSIsImV4cCI6MTcyMDA4MTcxNywiaWF0IjoxNzIwMDgxNzE3fQ.pVVn3P7Fzl62b6O-Qge0TpUiA75zu1rNGXpzwykkRHc"
+SECRET_KEY = config('SECRET_KEY')
 
 
 class TransactionService:
