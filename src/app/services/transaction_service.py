@@ -11,15 +11,15 @@ from typing import Optional
 
 logging.basicConfig(level=logging.DEBUG)
 
-@dataclass
-class User:
-    """Класс, представляющий пользователя."""
-    username: str
-    password: str
-    user_id: uuid.UUID
-    first_name: str
-    last_name: str
-    token: Optional[str] = None
+# @dataclass
+# class User:
+#     """Класс, представляющий пользователя."""
+#     username: str
+#     password: str
+#     user_id: uuid.UUID
+#     first_name: str
+#     last_name: str
+#     token: Optional[str] = None
 
 class TransactionType(Enum):
     """Перечисление типов транзакций."""
@@ -60,7 +60,7 @@ class TransactionService:
             user_id: str = payload.get("user_id")
             if username is None or user_id is None:
                 return None
-            return username
+            return {'username': username, 'user_id': user_id}
         except jwt.PyJWTError:
             return None
 
@@ -68,7 +68,7 @@ class TransactionService:
         self, token: str, amount: float, trans_type: TransactionType
     ) -> str:
         """Создает новую транзакцию."""
-        user_id = self._decode_token(token)
+        user_id = self.decode_token(token)
         transaction = Transaction(
             user_id=user_id,
             amount=amount,
@@ -81,7 +81,7 @@ class TransactionService:
         self, token: str, start: datetime, end: datetime
     ) -> List[Transaction]:
         """Получает список транзакций пользователя за указанный период."""
-        user_id = self._decode_token(token)
+        user_id = self.decode_token(token)
         return [
             transact
             for transact in self.transactions
