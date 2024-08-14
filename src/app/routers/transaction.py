@@ -1,8 +1,9 @@
+from datetime import datetime
+
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
-from datetime import datetime
+
 from src.app.services.transaction_service import TransactionService, TransactionType
-import uuid
 
 router = APIRouter()
 
