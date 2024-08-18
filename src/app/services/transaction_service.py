@@ -5,7 +5,6 @@ from typing import List, Optional
 from enum import Enum
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy.exc import NoResultFound
 
 from src.app.db.models import TransactionModel
 
@@ -39,7 +38,7 @@ class TransactionService:
 
         async with httpx.AsyncClient() as client:
             # Получаем текущий баланс пользователя
-            balance_response = await client.get(f"{self.auth_service_url}/users/{user_id}/get_balance")
+            balance_response = await client.get(f"{self.auth_service_url}/users/{user_id}/balance")
             if balance_response.status_code != 200:
                 return "User not found."
 
@@ -51,8 +50,8 @@ class TransactionService:
             new_balance = current_balance - amount if transaction_type == TransactionType.debit else current_balance + amount
 
             update_response = await client.patch(
-                f"{self.auth_service_url}/users/{user_id}/update_balance",
-                json={"new_balance": new_balance}
+                f"{self.auth_service_url}/users/update_balance",
+                json={"new_balance": new_balance, "token": token}
             )
             if update_response.status_code != 200:
                 return "Failed to update balance."
