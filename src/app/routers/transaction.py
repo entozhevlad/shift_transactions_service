@@ -1,28 +1,24 @@
-from datetime import datetime
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from src.app.services.transaction_service import TransactionService, TransactionType
 from src.app.db.db import get_db
-
-router = APIRouter()
-
-# Указываем URL сервиса аутентификации
-AUTH_SERVICE_URL = 'http://auth_service:82'
-
-# Инициализация сервиса транзакций один раз
-transaction_service = TransactionService(auth_service_url=AUTH_SERVICE_URL, db_session=None)
-
-class TransactionCreateRequest(BaseModel):
-    """Создание транзакции."""
-    amount: float
-    type: str
+from src.app.services.transaction_service import TransactionService, TransactionType
+from datetime import datetime
+from pydantic import BaseModel
 
 class DateRangeRequest(BaseModel):
-    """Диапазон дат."""
+    """Модель для диапазона дат."""
     start: datetime
     end: datetime
+
+class TransactionCreateRequest(BaseModel):
+    """Модель для создания транзакции."""
+    amount: float
+    type: str
+        
+router = APIRouter()
+
+AUTH_SERVICE_URL = 'http://auth_service:82'
 
 @router.post('/transactions/')
 async def create_transaction(
@@ -31,8 +27,7 @@ async def create_transaction(
     db_session: AsyncSession = Depends(get_db)
 ):
     """Создание транзакции."""
-    # Передаем текущую сессию в сервис
-    transaction_service.db_session = db_session
+    transaction_service = TransactionService(db_session=db_session, auth_service_url=AUTH_SERVICE_URL)
 
     result = await transaction_service.update_user_balance(
         token,
@@ -52,8 +47,7 @@ async def get_transactions_report(
     db_session: AsyncSession = Depends(get_db)
 ):
     """Отчет о транзакциях."""
-    # Передаем текущую сессию в сервис
-    transaction_service.db_session = db_session
+    transaction_service = TransactionService(db_session=db_session, auth_service_url=AUTH_SERVICE_URL)
 
     transactions = await transaction_service.get_user_transactions(
         token,

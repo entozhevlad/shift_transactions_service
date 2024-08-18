@@ -1,12 +1,17 @@
 import httpx
+import jwt
 import uuid
 from datetime import datetime
 from typing import List, Optional
 from enum import Enum
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-
 from src.app.db.models import TransactionModel
+from decouple import config
+
+# Конфигурация для декодирования JWT
+SECRET_KEY = config('SECRET_KEY')
+ALGORITHM = 'HS256'
 
 class TransactionType(Enum):
     """Перечисление типов транзакций."""
@@ -16,55 +21,65 @@ class TransactionType(Enum):
 class TransactionService:
     """Сервис для управления транзакциями."""
 
-    def __init__(self, auth_service_url: str, db_session: AsyncSession):
-        self.auth_service_url = auth_service_url
+    def __init__(self, db_session: AsyncSession, auth_service_url: str):
         self.db_session = db_session
+        self.auth_service_url = auth_service_url
 
-    async def decode_token(self, token: str) -> Optional[dict]:
+    def decode_token(self, token: str) -> Optional[dict]:
         """Декодирование токена для получения информации о пользователе."""
+        try:
+            payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+            return payload
+        except jwt.PyJWTError:
+            return None
+
+    async def get_user_balance(self, token: str) -> Optional[float]:
+        """Получение баланса пользователя через API."""
         async with httpx.AsyncClient() as client:
-            response = await client.post(f"{self.auth_service_url}/token_data/", json={"token": token})
+            response = await client.get(
+                f"{self.auth_service_url}/users/balance",
+                headers={"Authorization": f"Bearer {token}"}
+            )
             if response.status_code == 200:
-                return response.json()
+                balance_info = response.json()
+                return balance_info.get("balance")
             return None
 
     async def update_user_balance(self, token: str, amount: float, transaction_type: TransactionType) -> Optional[str]:
         """Обновление баланса пользователя и создание транзакции."""
-        user_info = await self.decode_token(token)
-        if user_info is None:
-            return "Invalid token."
+        current_balance = await self.get_user_balance(token)
+        if current_balance is None:
+            return "Invalid token or user not found."
 
-        user_id = user_info.get('user_id')
+        if transaction_type == TransactionType.debit and current_balance < amount:
+            return f"Insufficient funds. Current balance: {current_balance}."
+
+        new_balance = current_balance - amount if transaction_type == TransactionType.debit else current_balance + amount
 
         async with httpx.AsyncClient() as client:
-            # Получаем текущий баланс пользователя
-            balance_response = await client.get(f"{self.auth_service_url}/users/{user_id}/balance")
-            if balance_response.status_code != 200:
-                return "User not found."
-
-            current_balance = balance_response.json().get("balance")
-
-            if transaction_type == TransactionType.debit and current_balance < amount:
-                return f"Insufficient funds. Current balance: {current_balance}."
-
-            new_balance = current_balance - amount if transaction_type == TransactionType.debit else current_balance + amount
-
             update_response = await client.patch(
                 f"{self.auth_service_url}/users/update_balance",
-                json={"new_balance": new_balance, "token": token}
+                json={"new_balance": new_balance},
+                headers={"Authorization": f"Bearer {token}"}
             )
             if update_response.status_code != 200:
                 return "Failed to update balance."
 
             try:
-                await self.create_transaction(user_id, amount, transaction_type)
+                await self.create_transaction(token, amount, transaction_type)
             except Exception as e:
                 return f"Failed to create transaction: {str(e)}"
 
-            return f"Transaction created for user {user_id}."
+            return "Transaction created."
 
-    async def create_transaction(self, user_id: uuid.UUID, amount: float, transaction_type: TransactionType) -> None:
+    async def create_transaction(self, token: str, amount: float, transaction_type: TransactionType) -> None:
         """Создание записи транзакции в базе данных."""
+        user_info = self.decode_token(token)
+        if not user_info:
+            raise ValueError("Invalid token.")
+
+        user_id = uuid.UUID(user_info.get('user_id'))
+
         transaction = TransactionModel(
             id=uuid.uuid4(),
             user_id=user_id,
@@ -79,11 +94,11 @@ class TransactionService:
 
     async def get_user_transactions(self, token: str, start: datetime, end: datetime) -> List[TransactionModel]:
         """Получение транзакций пользователя из базы данных по user_id."""
-        user_info = await self.decode_token(token)
-        if user_info is None:
+        user_info = self.decode_token(token)
+        if not user_info:
             return []
 
-        user_id = user_info.get('user_id')
+        user_id = uuid.UUID(user_info.get('user_id'))
 
         async with self.db_session as session:
             query = select(TransactionModel).where(
