@@ -1,124 +1,97 @@
-import logging
+import httpx
 import uuid
-from dataclasses import dataclass, field
 from datetime import datetime
+from typing import List, Optional
 from enum import Enum
-from typing import Dict, List, Optional
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
+from sqlalchemy.exc import NoResultFound
 
-import jwt
-from decouple import config
-
-logging.basicConfig(level=logging.DEBUG)
-
-# Constants for repeated string literals
-ALGORITHM = 'HS256'
-SECRET_KEY = config('SECRET_KEY')
-USERNAME_FIELD = 'username'
-USER_ID_FIELD = 'user_id'
-
+from src.app.db.models import TransactionModel
 
 class TransactionType(Enum):
     """Перечисление типов транзакций."""
-
     debit = 'debit'
     credit = 'credit'
-
-
-@dataclass
-class Transaction:
-    """Класс, представляющий транзакцию."""
-
-    user_id: uuid.UUID
-    amount: float
-    type: TransactionType
-    time: datetime = field(default_factory=datetime.now)
-
-
-@dataclass
-class Report:
-    """Класс, представляющий отчет по транзакциям."""
-
-    user_id: uuid.UUID
-    transactions: List[Transaction]
-    generated_at: datetime = field(default_factory=datetime.now)
-
 
 class TransactionService:
     """Сервис для управления транзакциями."""
 
-    def __init__(self):
-        """Инициализирует сервис транзакций."""
-        self.transactions: List[Transaction] = []
-        self.reports: List[Report] = []
+    def __init__(self, auth_service_url: str, db_session: AsyncSession):
+        self.auth_service_url = auth_service_url
+        self.db_session = db_session
 
-    def decode_token(self, token: str) -> Optional[Dict[str, str]]:
-        """Проверяет JWT-токен и извлекает полную информацию о пользователе."""
-        try:
-            payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        except jwt.PyJWTError:
+    async def decode_token(self, token: str) -> Optional[dict]:
+        """Декодирование токена для получения информации о пользователе."""
+        async with httpx.AsyncClient() as client:
+            response = await client.post(f"{self.auth_service_url}/token_data/", json={"token": token})
+            if response.status_code == 200:
+                return response.json()
             return None
 
-        username: Optional[str] = payload.get(USERNAME_FIELD)
-        user_id: Optional[str] = payload.get(USER_ID_FIELD)
-        if username is None or user_id is None:
-            return None
-        return {USERNAME_FIELD: username, USER_ID_FIELD: user_id}
-
-    def create_transaction(
-        self, token: str, amount: float, trans_type: TransactionType,
-    ) -> str:
-        """Создает новую транзакцию."""
-        user_info = self.decode_token(token)
+    async def update_user_balance(self, token: str, amount: float, transaction_type: TransactionType) -> Optional[str]:
+        """Обновление баланса пользователя и создание транзакции."""
+        user_info = await self.decode_token(token)
         if user_info is None:
-            return 'Invalid token'
+            return "Invalid token."
 
-        transaction = Transaction(
-            user_id=user_info.get(USER_ID_FIELD),
+        user_id = user_info.get('user_id')
+
+        async with httpx.AsyncClient() as client:
+            # Получаем текущий баланс пользователя
+            balance_response = await client.get(f"{self.auth_service_url}/users/{user_id}/get_balance")
+            if balance_response.status_code != 200:
+                return "User not found."
+
+            current_balance = balance_response.json().get("balance")
+
+            if transaction_type == TransactionType.debit and current_balance < amount:
+                return f"Insufficient funds. Current balance: {current_balance}."
+
+            new_balance = current_balance - amount if transaction_type == TransactionType.debit else current_balance + amount
+
+            update_response = await client.patch(
+                f"{self.auth_service_url}/users/{user_id}/update_balance",
+                json={"new_balance": new_balance}
+            )
+            if update_response.status_code != 200:
+                return "Failed to update balance."
+
+            try:
+                await self.create_transaction(user_id, amount, transaction_type)
+            except Exception as e:
+                return f"Failed to create transaction: {str(e)}"
+
+            return f"Transaction created for user {user_id}."
+
+    async def create_transaction(self, user_id: uuid.UUID, amount: float, transaction_type: TransactionType) -> None:
+        """Создание записи транзакции в базе данных."""
+        transaction = TransactionModel(
+            id=uuid.uuid4(),
+            user_id=user_id,
             amount=amount,
-            type=trans_type,
-        )
-        self.transactions.append(transaction)
-        return 'Transaction created for user {user_id}: {transaction}'.format(
-            user_id=user_info.get(USER_ID_FIELD), transaction=transaction,
+            type=transaction_type.value,
+            created_at=datetime.utcnow()
         )
 
-    def get_user_transactions(
-        self, token: str, start: datetime, end: datetime,
-    ) -> List[Transaction]:
-        """Получает список транзакций пользователя за указанный период."""
-        user_info = self.decode_token(token)
+        async with self.db_session as session:
+            async with session.begin():
+                session.add(transaction)
+
+    async def get_user_transactions(self, token: str, start: datetime, end: datetime) -> List[TransactionModel]:
+        """Получение транзакций пользователя из базы данных по user_id."""
+        user_info = await self.decode_token(token)
         if user_info is None:
             return []
 
-        return [
-            transact
-            for transact in self.transactions
-            if (
-                transact.user_id == user_info.get(USER_ID_FIELD)
-                and start <= transact.time <= end
+        user_id = user_info.get('user_id')
+
+        async with self.db_session as session:
+            query = select(TransactionModel).where(
+                TransactionModel.user_id == user_id,
+                TransactionModel.created_at.between(start, end)
             )
-        ]
+            result = await session.execute(query)
+            transactions = result.scalars().all()
 
-    def save_report(
-        self, token: str, transactions: List[Transaction],
-    ) -> None:
-        """Создает и сохраняет отчет по транзакциям пользователя."""
-        user_info = self.decode_token(token)
-        if user_info is None:
-            logging.error('Invalid token provided for report generation.')
-            return
-
-        report = Report(
-            user_id=user_info.get(USER_ID_FIELD),
-            transactions=transactions,
-        )
-        self.reports.append(report)
-        logging.info(
-            'Отчёт для пользователя {user_id} {generated_at}'.format(
-                user_id=report.user_id,
-                generated_at=report.generated_at,
-            ),
-        )
-        for transaction in report.transactions:
-            logging.info(transaction)
-        logging.info('')
+        return transactions
