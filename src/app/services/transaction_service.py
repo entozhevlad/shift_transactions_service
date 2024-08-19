@@ -45,25 +45,25 @@ class TransactionService:
                 return balance_info.get("balance")
             return None
 
-    async def update_user_balance(self, token: str, amount: float, transaction_type: TransactionType) -> Optional[str]:
+
+    async def update_user_balance(self, token: str, amount: float, transaction_type: TransactionType) -> str:
         """Обновление баланса пользователя и создание транзакции."""
-        current_balance = await self.get_user_balance(token)
-        if current_balance is None:
-            return "Invalid token or user not found."
+        # Предполагаем, что new_balance вычисляется где-то в методе или не требуется
+        params = {
+            "amount": amount,  # Передаем только amount
+            "Authorization": token
+        }
 
-        if transaction_type == TransactionType.debit and current_balance < amount:
-            return f"Insufficient funds. Current balance: {current_balance}."
-
-        # Рассчитываем новый баланс
-        new_balance = current_balance - amount if transaction_type == TransactionType.debit else current_balance + amount
-
-        # Обновляем баланс через сервис авторизации
         async with httpx.AsyncClient() as client:
             update_response = await client.patch(
                 f"{self.auth_service_url}/users/update_balance",
-                json={"new_balance": new_balance},
-                headers={"Authorization": f"Bearer {token}"}
+                params=params,  # Передаем параметры через URL
+                headers={"accept": "application/json"}
             )
+
+            if update_response.status_code == 422:
+                return "Invalid parameters provided. Check the data being sent."
+
             if update_response.status_code != 200:
                 return "Failed to update balance."
 
@@ -74,6 +74,7 @@ class TransactionService:
                 return f"Failed to create transaction: {str(e)}"
 
             return "Transaction created."
+
 
     async def create_transaction(self, token: str, amount: float, transaction_type: TransactionType) -> None:
         """Создание записи транзакции в базе данных."""

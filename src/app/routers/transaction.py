@@ -14,7 +14,7 @@ class TransactionCreateRequest(BaseModel):
     """Модель для создания транзакции."""
     amount: float
     type: str
-        
+
 router = APIRouter()
 
 AUTH_SERVICE_URL = 'http://auth_service:82'
@@ -29,15 +29,16 @@ async def create_transaction(
     transaction_service = TransactionService(db_session=db_session, auth_service_url=AUTH_SERVICE_URL)
 
     result = await transaction_service.update_user_balance(
-        token,
-        request.amount,
-        TransactionType(request.type),
+        token=token,
+        amount=request.amount,  # Используйте только amount из запроса
+        transaction_type=TransactionType(request.type),  # Тип транзакции
     )
 
     if "Transaction created" not in result:
         raise HTTPException(status_code=400, detail=result)
 
     return {'detail': 'Transaction created'}
+
 
 @router.post('/transactions/report/')
 async def get_transactions_report(
