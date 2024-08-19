@@ -48,9 +48,22 @@ class TransactionService:
 
     async def update_user_balance(self, token: str, amount: float, transaction_type: TransactionType) -> str:
         """Обновление баланса пользователя и создание транзакции."""
-        # Предполагаем, что new_balance вычисляется где-то в методе или не требуется
+        current_balance = await self.get_user_balance(token)
+
+        if current_balance is None:
+            return "Failed to retrieve user balance."
+
+        if transaction_type == TransactionType.debit:
+            if current_balance < amount:
+                return "Insufficient funds. Transaction cannot be completed."
+            new_balance = current_balance - amount
+        elif transaction_type == TransactionType.credit:
+            new_balance = current_balance + amount
+        else:
+            return "Invalid transaction type."
+
         params = {
-            "amount": amount,  # Передаем только amount
+            "amount": new_balance,  # Передаем обновленный баланс
             "Authorization": token
         }
 
@@ -73,7 +86,8 @@ class TransactionService:
             except Exception as e:
                 return f"Failed to create transaction: {str(e)}"
 
-            return "Transaction created."
+            return "Transaction created successfully."
+
 
 
     async def create_transaction(self, token: str, amount: float, transaction_type: TransactionType) -> None:
