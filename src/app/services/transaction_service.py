@@ -15,8 +15,8 @@ ALGORITHM = 'HS256'
 
 class TransactionType(Enum):
     """Перечисление типов транзакций."""
-    debit = 'debit'
-    credit = 'credit'
+    debit = 'debit'   # Уменьшение баланса
+    credit = 'credit' # Увеличение баланса
 
 class TransactionService:
     """Сервис для управления транзакциями."""
@@ -34,7 +34,7 @@ class TransactionService:
             return None
 
     async def get_user_balance(self, token: str) -> Optional[float]:
-        """Получение баланса пользователя через API."""
+        """Получение баланса пользователя через API микросервиса авторизации."""
         async with httpx.AsyncClient() as client:
             response = await client.get(
                 f"{self.auth_service_url}/users/balance",
@@ -54,8 +54,10 @@ class TransactionService:
         if transaction_type == TransactionType.debit and current_balance < amount:
             return f"Insufficient funds. Current balance: {current_balance}."
 
+        # Рассчитываем новый баланс
         new_balance = current_balance - amount if transaction_type == TransactionType.debit else current_balance + amount
 
+        # Обновляем баланс через сервис авторизации
         async with httpx.AsyncClient() as client:
             update_response = await client.patch(
                 f"{self.auth_service_url}/users/update_balance",
@@ -65,6 +67,7 @@ class TransactionService:
             if update_response.status_code != 200:
                 return "Failed to update balance."
 
+            # Создаем транзакцию в случае успешного обновления баланса
             try:
                 await self.create_transaction(token, amount, transaction_type)
             except Exception as e:

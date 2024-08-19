@@ -1,10 +1,9 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Header
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.app.db.db import get_db
 from src.app.services.transaction_service import TransactionService, TransactionType
 from datetime import datetime
-from pydantic import BaseModel
 
 class DateRangeRequest(BaseModel):
     """Модель для диапазона дат."""
@@ -23,7 +22,7 @@ AUTH_SERVICE_URL = 'http://auth_service:82'
 @router.post('/transactions/')
 async def create_transaction(
     request: TransactionCreateRequest,
-    token: str,
+    token: str = Header(...),  # JWT токен передается через заголовок
     db_session: AsyncSession = Depends(get_db)
 ):
     """Создание транзакции."""
@@ -43,7 +42,7 @@ async def create_transaction(
 @router.post('/transactions/report/')
 async def get_transactions_report(
     request: DateRangeRequest,
-    token: str,
+    token: str = Header(...),  # JWT токен передается через заголовок
     db_session: AsyncSession = Depends(get_db)
 ):
     """Отчет о транзакциях."""
