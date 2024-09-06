@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: zar-transactions-service
+  namespace: test
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: zar-transactions-service
+  template:
+    metadata:
+      labels:
+        app: zar-transactions-service
+    spec:
+      containers:
+      - name: zar-transactions-service
+        image: aliquis21/zar-transactions-service:latest
+        ports:
+        - containerPort: 8080
+        resources:
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: zar-transactions-service-secrets
+              key: DATABASE_URL
+        - name: KAFKA_BOOTSTRAP_SERVERS
+          valueFrom:
+            configMapKeyRef:
+              name: zar-transactions-service-config
+              key: KAFKA_BOOTSTRAP_SERVERS

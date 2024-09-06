@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
-DATABASE_URL = config('DATABASE_URL')
+DATABASE_URL = 'postgresql+asyncpg://postgres:postgres@db:5432/transactions_db' #config('DATABASE_URL')
 
 engine = create_async_engine(DATABASE_URL, echo=True)
 AsyncSessionLocal = sessionmaker(
