@@ -1,23 +1,25 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: zar-transactions-service
-  namespace: test
+  name: {{ include "my-charts.fullname" . }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "my-charts.labels" . | nindent 4 }}
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app: zar-transactions-service
+      app: {{ include "my-charts.name" . }}
   template:
     metadata:
       labels:
-        app: zar-transactions-service
+        app: {{ include "my-charts.name" . }}
     spec:
       containers:
-      - name: zar-transactions-service
+      - name: {{ include "my-charts.name" . }}
         image: aliquis21/zar-transactions-service:latest
         ports:
-        - containerPort: 8080
+        - containerPort: {{ .Values.containerPort }}
         resources:
           limits:
             memory: "512Mi"
@@ -36,3 +38,12 @@ spec:
             configMapKeyRef:
               name: zar-transactions-service-config
               key: KAFKA_BOOTSTRAP_SERVERS
+        volumeMounts:
+        - name: photos-storage
+          mountPath: /app/photos
+      volumes:
+      - name: photos-storage
+        persistentVolumeClaim:
+          claimName: zar-photos-pvc
+      imagePullSecrets:
+        - name: regcred

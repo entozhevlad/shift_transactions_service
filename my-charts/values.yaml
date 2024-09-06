@@ -1,0 +1,29 @@
+namespace: test
+
+config:
+  databaseHost: "postgres-service"
+  databasePort: "5432"
+  jwtSecretKey: "eyJhbGciOiJIUzI1NiJ9.eyJSb2xlIjoiQWRtaW4iLCJJc3N1ZXIiOiJJc3N1ZXIiLCJVc2VybmFtZSI6IkphdmFJblVzZSIsImV4cCI6MTcyMDA4MTcxNywiaWF0IjoxNzIwMDgxNzE3fQ.pVVn3P7Fzl62b6O-Qge0TpUiA75zu1rNGXpzwykkRHc"
+  kafkaBootstrapServers: "kafka-service:9092"
+
+secrets:
+  databaseUrl: "cG9zdGdyZXNxbCthc3luY3BnOi8vdXNlcm5hbWU6cGFzc3dvcmRAcG9zdGdyZXNzLXNlcnZpY2U6NTQzMi92emFydWJpbg=="
+
+image:
+  repository: aliquis21/zar-transactions-service
+  tag: latest
+
+containerPort: 8080
+
+resources:
+  limits:
+    memory: "512Mi"
+    cpu: "500m"
+  requests:
+    memory: "256Mi"
+    cpu: "250m"
+
+replicas: 2
+
+service:
+  port: 83

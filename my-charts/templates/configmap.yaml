@@ -2,7 +2,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: zar-transactions-service-config
-  namespace: test
+  namespace: {{ .Values.namespace }}
 data:
   DATABASE_HOST: "postgres-service"
   DATABASE_PORT: "5432"
