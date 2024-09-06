@@ -8,6 +8,6 @@ spec:
     app: zar-transactions-service
   ports:
   - protocol: TCP
-    port: 80
+    port: 83
     targetPort: 8080
   type: ClusterIP
