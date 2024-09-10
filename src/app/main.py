@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from opentelemetry import trace
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
@@ -6,6 +6,8 @@ from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from opentelemetry.exporter.jaeger.thrift import JaegerExporter
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from opentelemetry.instrumentation.requests import RequestsInstrumentor
+import redis
+
 from src.app.routers.transaction import router
 
 app = FastAPI()
@@ -33,6 +35,13 @@ FastAPIInstrumentor.instrument_app(app)
 # Инструментирование HTTP-клиентов (например, requests)
 RequestsInstrumentor().instrument()
 
+# Инициализация Redis клиента
+redis_client = redis.Redis(host='redis', port=6379, db=0, decode_responses=True)
+
+# Функция зависимости для возврата Redis клиента
+def get_redis():
+    return redis_client
+
 # Завершение работы (shutdown) при завершении приложения
 @app.on_event("shutdown")
 def shutdown_tracer():
@@ -47,5 +56,5 @@ def read_main():
     """Функция с приветственным текстом."""
     return {'message': 'Welcome to the Transaction Service API'}
 
-
+# Передаем Redis клиент как параметр в роутер
 app.include_router(router, prefix='/transaction', tags=['transaction'])
