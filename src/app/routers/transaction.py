@@ -51,13 +51,12 @@ async def create_transaction(
         raise HTTPException(status_code=400, detail=responce_result)
 
     return {'detail': 'Transaction created'}
-
 @router.post('/transactions/report/')
 async def get_transactions_report(
     request: DateRangeRequest,
     token: str = Header(...),
     db_session: AsyncSession = Depends(get_db),
-    redis_client: redis.Redis = Depends(get_redis),  # Добавляем Redis в зависимости
+    redis_client: redis.Redis = Depends(get_redis),
 ):
     """Отчет о транзакциях."""
     cache_key = f"transactions:{token}:{request.start}:{request.end}"
@@ -80,9 +79,11 @@ async def get_transactions_report(
     )
 
     # Кэшируем результат на 60 секунд
-    await redis_client.setex(cache_key, 60, json.dumps([tx.__dict__ for tx in transactions]))
+    transactions_dict = [tx.to_dict() for tx in transactions]
+    await redis_client.setex(cache_key, 60, json.dumps(transactions_dict))
 
-    return {'transactions': [tx.__dict__ for tx in transactions]}
+    return {'transactions': transactions_dict}
+
 
 @router.get('/healthz/ready')
 async def health_check():

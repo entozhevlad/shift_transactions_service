@@ -6,7 +6,6 @@ from sqlalchemy.dialects.postgresql import UUID
 
 from src.app.db.db import Base
 
-
 class TransactionModel(Base):
     """Модель для транзакций."""
 
@@ -18,3 +17,13 @@ class TransactionModel(Base):
     amount = Column(Float, nullable=False)
     type = Column(String, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        """Преобразование модели в словарь для сериализации."""
+        return {
+            "id": str(self.id),  # Преобразуем UUID в строку
+            "user_id": str(self.user_id),  # Преобразуем UUID в строку
+            "amount": self.amount,
+            "type": self.type,
+            "created_at": self.created_at.isoformat(),  # Преобразуем datetime в строку
+        }
